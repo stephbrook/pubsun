@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { Front, LatLon, Result } from "../lib/types";
 
 const W = 720;
@@ -104,6 +105,18 @@ function streetName(name: string) {
   return name.replace(/\bStreet\b/i, "St");
 }
 
+function useNarrow() {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}
+
 function SmileySun({ x, y }: XY) {
   return (
     <g transform={`translate(${x} ${y})`} strokeLinecap="round" strokeLinejoin="round">
@@ -131,6 +144,7 @@ type Props = {
 };
 
 export function SunMap({ result, time }: Props) {
+  const narrow = useNarrow();
   const toXY = projector(result);
   const outline = (result.building.outline ?? []).map(toXY);
   const centre = outline.length ? centroid(outline) : toXY({ lat: result.building.lat, lon: result.building.lon });
@@ -141,7 +155,7 @@ export function SunMap({ result, time }: Props) {
     const pts = (front.points ?? []).map(toXY);
     if (!pts.length) return [];
     const row = front.rows.find((r) => r.time === time);
-    const count = Math.min(6, pts.length);
+    const count = Math.min(narrow ? 3 : 6, pts.length);
     const indexes = Array.from({ length: count }, (_, i) =>
       Math.round((i * (pts.length - 1)) / Math.max(1, count - 1)),
     );
