@@ -235,7 +235,7 @@ function ResultView({ result }: { result: Result }) {
             </span>
             <div className="mt-3 text-center text-sm text-muted">
               <p>Some notes:</p>
-              <p>1. Nearby buildings are taken into account</p>
+              <p>1. Nearby buildings' shadows are taken into account</p>
               <p>2. Sorry but I don’t know if it’s cloudy, I’m not magic. Look outside!</p>
             </div>
             </label>
