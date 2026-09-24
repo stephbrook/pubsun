@@ -217,7 +217,7 @@ export function SunMap({ result, time }: Props) {
               style={{ left: `${(m.x / W) * 100}%`, top: `${(m.y / H) * 100}%` }}
               title={`${street.name}, ${m.metre} m, ${m.sun ? "sun" : "shade"}`}
             >
-              {m.sun ? "☀️" : "🌙"}
+              {m.sun ? "☀️" : "🌑"}
             </span>
           )),
         ])}
