@@ -3,8 +3,9 @@
 import type { Front, LatLon, Result } from "../lib/types";
 
 const W = 720;
-const H = 380;
+const H = 420;
 const PAD = 72;
+const SUN_BAND = 88;
 const MIN_FRONT_M = 8;
 
 type XY = { x: number; y: number };
@@ -23,6 +24,16 @@ function allPoints(result: Result): LatLon[] {
   return pts;
 }
 
+function hasStreetOnTop(result: Result) {
+  const lat = result.building.lat;
+  return seatingFronts(result).some((front) => {
+    const pts = front.points ?? [];
+    if (!pts.length) return false;
+    const mid = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+    return mid > lat;
+  });
+}
+
 function projector(result: Result) {
   const pts = allPoints(result);
   const lats = pts.map((p) => p.lat);
@@ -37,9 +48,10 @@ function projector(result: Result) {
   const maxY = Math.max(...ys);
   const spanX = Math.max(maxX - minX, 1e-6);
   const spanY = Math.max(maxY - minY, 1e-6);
-  const scale = Math.min((W - PAD * 2) / spanX, (H - PAD * 2) / spanY);
+  const top = hasStreetOnTop(result) ? SUN_BAND + 56 : PAD;
+  const scale = Math.min((W - PAD * 2) / spanX, (H - top - PAD) / spanY);
   const ox = (W - spanX * scale) / 2;
-  const oy = (H - spanY * scale) / 2;
+  const oy = top + (H - top - PAD - spanY * scale) / 2;
   return (p: LatLon): XY => ({
     x: ox + (p.lon * cos - minX) * scale,
     y: oy + (maxY - p.lat) * scale,
@@ -59,11 +71,12 @@ function minutes(time: string) {
   return h * 60 + m;
 }
 
-function sunPos(time: string, start: string, end: string): XY {
+function sunPos(time: string, start: string, end: string, ceiling: number): XY {
   const span = Math.max(1, minutes(end) - minutes(start));
   const t = Math.min(1, Math.max(0, (minutes(time) - minutes(start)) / span));
   const a = t * Math.PI;
-  return { x: W / 2 + 210 * Math.cos(a), y: 44 - 26 * Math.sin(a) };
+  const y = Math.min(32, ceiling - 36);
+  return { x: W / 2 + 210 * Math.cos(a), y: Math.max(22, y) };
 }
 
 function straighten(pts: XY[], centre: XY, gap = 28): XY[] {
@@ -122,7 +135,6 @@ export function SunMap({ result, time }: Props) {
   const outline = (result.building.outline ?? []).map(toXY);
   const centre = outline.length ? centroid(outline) : toXY({ lat: result.building.lat, lon: result.building.lon });
   const dayTimes = result.fronts[0]?.rows.map((r) => r.time) ?? [];
-  const sun = sunPos(time, dayTimes[0] ?? "06:00", dayTimes[dayTimes.length - 1] ?? "18:00");
   const shortName = result.building.name.split(",")[0];
 
   const streets = seatingFronts(result).flatMap((front) => {
@@ -154,6 +166,10 @@ export function SunMap({ result, time }: Props) {
       },
     ];
   });
+
+  const above = streets.flatMap((s) => [s.label, ...s.marks]).filter((p) => p.y < centre.y);
+  const ceiling = above.length ? Math.min(...above.map((p) => p.y)) : 80;
+  const sun = sunPos(time, dayTimes[0] ?? "06:00", dayTimes[dayTimes.length - 1] ?? "18:00", ceiling);
 
   return (
     <div className="sun-map">
