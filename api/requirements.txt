@@ -1,0 +1,7 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.32,<1
+numpy>=2,<3
+rasterio>=1.4,<2
+osmnx>=1.9,<3
+shapely>=2,<3
+python-dotenv>=1,<2
